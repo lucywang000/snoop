@@ -14,22 +14,47 @@
            []] ;; schemas
           (:children params-node)))
 
+(defn >defn-impl
+  [defn-node body]
+  (let [[prefix bodies] (->> body
+                             reverse
+                             (split-with api/list-node?)
+                             (map reverse)
+                             reverse)
+        all-schemas (atom [])
+        expand-body
+        (fn [body]
+          (let [body (:children body)
+                new-body (api/list-node
+                           (let [item (first body)
+                                 [params schemas] (read-param-decl item)]
+                             (swap! all-schemas conj schemas)
+                             (list* (api/vector-node params)
+                                    (rest body))))]
+            new-body))
+
+        new-bodies (mapv expand-body bodies)]
+    (api/list-node (list
+                     (api/token-node 'do)
+                     (api/vector-node
+                       (mapv api/vector-node @all-schemas))
+                     (api/list-node
+                       (list*
+                         defn-node
+                         (if (= (count new-bodies) 1)
+                           (concat prefix (-> new-bodies first :children))
+                           (concat prefix new-bodies))))))))
+
 (defn >defn
   [{:keys [node]}]
   (let [[macro-sym & body] (:children node)
         defn-node (api/token-node (case (name (api/sexpr macro-sym))
                                     ">defn" 'defn ">defn-" 'defn-))
-        output-node (api/list-node
-                     (loop [body' body
-                            acc []]
-                       (if-some [item (first body')]
-                         (if (api/vector-node? item)
-                           (let [[params schemas] (read-param-decl item)]
-                             (list (api/token-node 'do) (api/vector-node schemas)
-                                   (api/list-node
-                                    (list* defn-node
-                                           (into (conj acc (api/vector-node params))
-                                                 (rest body'))))))
-                           (recur (next body') (conj acc item)))
-                         (list* defn-node acc))))]
+        multi-arity? (not (some api/vector-node? body))
+        normalized-body (if multi-arity?
+                          body
+                          (let [[before after] (->> body
+                                                   (split-with (complement api/vector-node?)))]
+                           (concat before [(api/list-node after)])))
+        output-node (>defn-impl defn-node normalized-body)]
     {:node output-node}))
