@@ -17,17 +17,17 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojure</artifactId>
-      <version>1.10.3</version>
+      <version>1.12.1</version>
     </dependency>
     <dependency>
       <groupId>com.taoensso</groupId>
       <artifactId>encore</artifactId>
-      <version>3.20.0</version>
+      <version>3.151.0</version>
     </dependency>
     <dependency>
       <groupId>net.cgrand</groupId>
       <artifactId>macrovich</artifactId>
-      <version>0.2.1</version>
+      <version>0.2.2</version>
     </dependency>
   </dependencies>
   <build>

@@ -11,6 +11,7 @@
              [clojure.edn :as edn]]
        :cljs [[cljs.env :as cljs.env]])
    [taoensso.encore :as enc]
+   [clojure.walk :refer [postwalk]]
    [malli.error :as me]))
 
 #?(:clj (try
@@ -39,10 +40,36 @@
           :log-error-fn          #?(:clj println :cljs js/console.error)})))
 
 (usetime
+  (defn do-truncate-string
+    [s limit]
+    (let [len (count s)]
+      (if (<= len limit)
+        s
+        (str (subs s 0 limit) "...truncated...")))))
+
+#_(do-truncate-string "abc" 1)
+
+(usetime
+  (defn truncate-long-strings
+    [data limit]
+    (postwalk (fn [v]
+                (if (string? v)
+                  (do-truncate-string v limit)
+                  v
+                  ))
+              data)))
+
+#_(truncate-long-strings
+  {:foo "aabbccdd"
+   :bar ["aaaaaa" "x" "y" {:nest "ffffff"}]}
+  3)
+
+(usetime
  (defn throw-validation-error
    "Default function used to throw errors when in/outstrumentation fails."
    [{:keys [explainer-error] :as data} boundary]
-   (let [boundary-name (case boundary
+   (let [data (truncate-long-strings data 1000)
+         boundary-name (case boundary
                          :input "Instrument"
                          :output "Outstrument")
          log-error (:log-error-fn @*config)

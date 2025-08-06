@@ -122,21 +122,23 @@
 
 (deftime
   (defn- read-param-decl [parsed-arity]
-    {:pre [(:params-decl parsed-arity)]}
+    (assert (:params-decl parsed-arity) (into {} parsed-arity))
     (let [{:keys [params schema schema-used?]}
-          (reduce (fn [acc [alt decl]]
-                    (let [[param schema] (case alt
+          (reduce (fn [acc x]
+                    (let [alt (:key x)
+                          decl (-> x :value :values)
+                          [param schema] (case alt
                                            :instrumented
                                            [(:param decl) (:schema decl)]
 
                                            :param
-                                           [decl nil])]
+                                           [(:value x) nil])]
                       (-> acc
                           (update :params conj param)
                           (cond-> schema
                             (-> (update :schema conj schema)
                                 (assoc :schema-used? true)))
-                          (cond-> (not (or schema (= '& decl)))
+                          (cond-> (not (or schema (= '& param)))
                             (update :schema conj :any)))))
                   {:params []
                    :schema [:cat]
@@ -190,9 +192,10 @@
                                                               `(into ~fixed-syms ~rest-sym))})
                                        (let [v (gen-param-syms arityn)]
                                          {:params-proxy v :arg-capture-expr v}))
-          given-schema        (or schema
+          given-schema        (or (some-> schema :values)
                                   (some->> (:=> prepost-map)
-                                           (m/parse FnSchemaDecl)))
+                                           (m/parse FnSchemaDecl)
+                                           :values))
           given-input-schema  (or (:input given-schema)
                                   (when (and (contains? given-schema :input-unwrapped)
                                              (seq (:input-unwrapped given-schema)))
@@ -261,11 +264,12 @@
   (defn >defn*
     "Generates the output code for `>defn` from the declaration in `args`."
     [&env fn-name args]
-    (let [{:keys  [docstring]
-           [arity-type
-            code] :code
-           :as    parse-result} (m/parse InstrumentedDefnArgs args)
-          input-attr-map        (enc/merge (:attr-map parse-result) (:attr-map code))
+    (let [parse-result (:values (m/parse InstrumentedDefnArgs args))
+          _ (def vp0 parse-result)
+          {:keys [code docstring]}  parse-result
+          arity-type (:key code)
+          code-values (-> code :value :values)
+          input-attr-map        (enc/merge (:attr-map parse-result) (:attr-map code-values))
           opts                  (select-keys (enc/merge input-attr-map (meta fn-name))
                                              -defn-option-keys)
           parsed-arities        (into []
@@ -277,8 +281,9 @@
                                                       :param-schema param-schema
                                                       :params params))))
                                       (case arity-type
-                                        :single-arity (vector code)
-                                        :multi-arity  (:defs code)))
+                                        :single-arity (vector code-values)
+                                        :multi-arity  (->> (:defs code-values)
+                                                           (mapv :values))))
           max-fixed-arity       (->> parsed-arities
                                      (mapv (fn [{:keys [arityn params]}]
                                              (if (int? arityn)
@@ -442,5 +447,16 @@
       (as-> m
             (:output m)))
 
-;;
+  vp0
+  ;; (-> (:values vp0)
+  ;;     :code
+  ;;     :key)
+  ;; (-> (:values vp0)
+  ;;     :code
+  ;;     :key)
+
+  (type (-> vp0
+       :code
+       :value
+       :values))
   )

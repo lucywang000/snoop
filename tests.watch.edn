@@ -1,0 +1,6 @@
+#kaocha/v1
+ {:plugins [:hooks]
+  :fail-fast? true
+  :tests [{:id   :clj
+           :type :kaocha.type/clojure.test}]
+  :watch? true}

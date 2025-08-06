@@ -173,7 +173,8 @@
     (is (= 5 (d-a2)))
     (is (true? (empty? (select-keys (into {} (map meta)
                                           [(var d-m) (var d-a1) (var d-a2)])
-                                    snoop/-defn-option-keys)))))
+                                    snoop/-defn-option-keys))))
+    )
 
   (testing "disable function with inline style schema specification"
     (>defn disabled-inline

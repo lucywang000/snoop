@@ -4,11 +4,11 @@ on: [push, pull_request]
 
 jobs:
   clj-test:
-    # ubuntu 18.04 comes with lein + java8 installed
-    runs-on: ubuntu-18.04
+    # ubuntu 24.04 comes with lein + java8 installed
+    runs-on: ubuntu-24.04
     steps:
       - name: Git checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
@@ -17,19 +17,19 @@ jobs:
           ./bin/install-bb.sh
 
       - name: Install clojure tools
-        uses: DeLaGuardo/setup-clojure@3.5
+        uses: DeLaGuardo/setup-clojure@13.4
         with:
-          cli: 1.10.3.943
+          cli: 1.12.1.1550
 
       - name: Run CLJ Tests
         run: |
           bb test clj
 
   cljs-test:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Git checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
@@ -38,9 +38,9 @@ jobs:
           ./bin/install-bb.sh
 
       - name: Install clojure tools
-        uses: DeLaGuardo/setup-clojure@3.5
+        uses: DeLaGuardo/setup-clojure@13.4
         with:
-          cli: 1.10.3.943
+          cli: 1.12.1.1550
 
       - name: Install Chrome
         run: |
